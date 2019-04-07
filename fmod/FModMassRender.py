@@ -1,26 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Apr  6 01:18:50 2019
-
-@author: AsteriskAmpersand
-"""
-import sys
-
-from pathlib import Path
-sys.path.insert(0, r'..\common')
-from FileLike import FileLike
-from FBlock import FBlock
-from FMod import FModel
-
-if __name__ == "__main__":
-    frontier = r"G:\Frontier"
-    separator="=========================================="
-    for filepath in list(Path(frontier).rglob("*.fmod")):
-        print(filepath)    
-        Model = FModel(filepath)
-        print(separator)
-        
-"""
 import bpy,bmeshfrom bpy_extras 
 import view3d_utils
 from mathutils import Vector, Matrix
@@ -49,4 +26,3 @@ for filepath in list(Path(frontier).rglob("*.fmod")):
         bpy.context.scene.render.resolution_percentage = 100
         bpy.context.scene.render.filepath = filepath[:-4]+"-Angle %d"%ix+".JPEG"
         bpy.ops.render.opengl(write_still=True)
-"""
