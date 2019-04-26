@@ -55,14 +55,14 @@ class tristrip(PyCStruct):
             ])
     def marshall(self, data):
         super().marshall(data)
-        self.vertices = [vertexId() for i in range(self.count)]
+        self.vertices = [vertexId() for i in range(self.count&0xFFFFFFF)]
         [v.marshall(data) for v in self.vertices]
 
 
 class FBlockHeader(PyCStruct):
     fields = OrderedDict([
             ("type","uint32"),
-            ("count","uint32"),
+            ("count","int32"),
             ("size","uint32"),
             ])
 

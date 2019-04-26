@@ -21,8 +21,7 @@ if __name__ == "__main__":
         print(separator)
         
 """
-import bpy,bmeshfrom bpy_extras 
-import view3d_utils
+import bpy,bmesh
 from mathutils import Vector, Matrix
 from pathlib import Path
 
@@ -34,7 +33,7 @@ def setViewport(space, ctx, position):
 	bpy.ops.view3d.view_selected(ctx)
 	bpy.ops.object.select_all(action='DESELECT')
 	
-frontier = r"G:\Frontier"
+frontier = r"G:\Frontier\WeaponRip\organizedWeapons"
 for filepath in list(Path(frontier).rglob("*.fmod")):
     filepath = filepath.resolve().as_posix()
     bpy.ops.custom_import.import_mhf_fmod(filepath = filepath)   

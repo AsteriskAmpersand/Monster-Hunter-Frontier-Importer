@@ -1,5 +1,4 @@
 import bpy,bmeshfrom bpy_extras 
-import view3d_utils
 from mathutils import Vector, Matrix
 from pathlib import Path
 
