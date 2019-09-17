@@ -20,8 +20,8 @@ class FFaces():
         for tristripArray in FaceBlock.Data:
             for tristrip in tristripArray.Data:
                 verts=tristrip.Data.vertices
-                self.Faces += [[v1.id,v2.id,v3.id] for v1, v2, v3 in zip(verts[:-2], verts[1:-1], verts[2:])]
-
+                self.Faces += [[v1.id,v2.id,v3.id][::((w+1)%2)*2-1]
+                               for w,(v1, v2, v3) in enumerate(zip(verts[:-2], verts[1:-1], verts[2:]))]
 class FUnkSing():
     def __init__(self, UnknownSingularBlock):
         pass
