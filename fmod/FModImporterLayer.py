@@ -34,6 +34,8 @@ class FModImporter():
         uvLayer.active = ix == 0
         if import_textures:
             FModImporter.importTextures(blenderObject, modelPath)
+        #Weights
+        FModImporter.setWeights(mesh["weights"],blenderObject)
         blenderMesh.update()
         meshObjects.append(blenderObject)
         
@@ -78,6 +80,17 @@ class FModImporter():
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
         meshpart.use_auto_smooth = True
         meshpart.show_edge_sharp = True
+        
+    @staticmethod
+    def setWeights(weights, meshObj):
+        for groupIx,group in weights.items():
+            groupId = "%03d"%groupIx if isinstance(groupIx, int) else str(groupIx) 
+            groupName = "Bone.%s"%str(groupId)
+            for vertex,weight in group:
+                if groupName not in meshObj.vertex_groups:
+                    meshObj.vertex_groups.new(groupName)#blenderObject Maybe?
+                meshObj.vertex_groups[groupName].add([vertex], weight, 'ADD')
+            
         
     @staticmethod
     def maximizeClipping():

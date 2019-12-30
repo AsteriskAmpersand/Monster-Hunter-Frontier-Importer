@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Apr  6 02:35:29 2019
-
-@author: AsteriskAmpersand
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Wed Mar  6 14:09:29 2019
 
 @author: AsteriskAmpersand

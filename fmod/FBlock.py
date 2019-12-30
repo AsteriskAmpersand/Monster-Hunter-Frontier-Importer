@@ -58,6 +58,38 @@ class tristrip(PyCStruct):
         self.vertices = [vertexId() for i in range(self.count&0xFFFFFFF)]
         [v.marshall(data) for v in self.vertices]
 
+class weight(PyCStruct):
+    fields = OrderedDict([
+            ("boneID","uint32"),
+            ("weightValue","float"),
+            ])
+
+class weightData(PyCStruct):
+    fields = OrderedDict([
+            ("count","uint32"),
+            ])
+    def marshall(self, data):
+        super().marshall(data)
+        self.weights = [weight() for i in range(self.count)]
+        [w.marshall(data) for w in self.weights]
+    def prettyPrint(self, base = ""):
+        #name = type(self).__name__
+        #print(base+name)
+        pass
+    
+class boneBlock(PyCStruct):
+    fields = OrderedDict([
+            ("nodeID","int32"),
+            ("parentID","int32"),
+            ("leftChild","int32"),
+            ("rightSibling","int32"),
+            ("vec1","float[4]"),
+            ("vec2","float[4]"),
+            ("posVec","float[4]"),
+            ("null","uint32"),
+            ("chainID","uint32"),
+            ("unkn2","uint32[46]"),
+            ])
 
 class FBlockHeader(PyCStruct):
     fields = OrderedDict([
@@ -79,25 +111,28 @@ class FBlock():
         
     def prettyPrint(self, base = ""):
         name = type(self.getType()).__name__
-        print(base+name+":"+hex(self.Header.type)+"#"+str(self.Header.count))
+        print(base+name+":"+" "+str(self.Header.count) + " \t"+hex(self.Header.type))
         for datum in self.Data:
             datum.prettyPrint(base+"\t")
         
     def getType(self):     
         types = {
-            0x000020000:InitBlock,
-            0x000000001:FileBlock,
-            0x000000002:MainBlock,
-            0x000000004:ObjectBlock,
-            0x000000005:FaceBlock,
-            0x000030000:trisStripsData,
-            0x000040000:trisStripsData,
-            0x000050000:byteArrayData,
-            0x000060000:byteArrayData,
-            0x000070000:vertexData,
-            0x000080000:normalsData,
-            0x0000A0000:uvData,
-            0x0000B0000:rgbData,
+            0x00020000:InitBlock,
+            0x00000001:FileBlock,
+            0x00000002:MainBlock,
+            0x00000004:ObjectBlock,
+            0x00000005:FaceBlock,
+            0xC0000000:SkeletonBlock,
+            0x40000001:boneBlock,
+            0x00030000:trisStripsData,
+            0x00040000:trisStripsData,
+            0x00050000:byteArrayData,
+            0x00060000:byteArrayData,
+            0x00070000:vertexData,
+            0x00080000:normalsData,
+            0x000A0000:uvData,
+            0x000B0000:rgbData,
+            0x000C0000:weightData,
             }
         return types[self.Header.type]() if self.Header.type in types else UnknBlock()
 
@@ -108,6 +143,8 @@ class MainBlock(FBlock):
 class ObjectBlock(FBlock):
     pass
 class FaceBlock(FBlock):
+    pass
+class SkeletonBlock(FBlock):
     pass
 
 class InitData(PyCStruct):
@@ -134,7 +171,6 @@ class dataContainer():
         #name = type(self).__name__
         #print(base+name)
         pass
-
 class trisStripsData(dataContainer):
     dataType = tristrip
 class byteArrayData(dataContainer):

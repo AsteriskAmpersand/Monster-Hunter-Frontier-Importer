@@ -60,7 +60,7 @@ def minifloatSerialize(x):
     
 
 class PyCStruct():
-    def __init__(self, data = None, **kwargs):
+    def __init__(self, data = None, parent = None, **kwargs):
         self.CStruct = Cstruct(self.fields)
         if data != None:
             self.marshall(data)

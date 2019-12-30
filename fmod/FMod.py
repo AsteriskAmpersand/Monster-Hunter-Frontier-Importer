@@ -46,6 +46,16 @@ class FRGB():
     def __init__(self,RGBBlock):
         self.RGB = [[rgb.Data.x,rgb.Data.y,rgb.Data.z,rgb.Data.w] for rgb in RGBBlock.Data]
 
+class FWeights():
+    def __init__(self, WeightsBlock):
+        groups = {}
+        for vertID,weights in enumerate(WeightsBlock.Data):
+            for weight in weights.weights:
+                if weight.boneID not in groups:
+                    groups[weight.boneID] = []
+                groups[weight.boneID].append((vertID,weight.weightValue/100))
+        self.Weights = groups
+
 class FMesh():
     def __init__(self, ObjectBlock):
         Objects = iter(ObjectBlock.Data)
@@ -56,12 +66,14 @@ class FMesh():
         self.Normals = FNormals(next(Objects))
         self.UVs = FUVs(next(Objects))
         self.RGBLike = FRGB(next(Objects))
+        self.Weights = FWeights(next(Objects))
         
     def traditionalMeshStructure(self):
         return {"vertices":self.Vertices.Vertices, 
                 "faces":self.Faces.Faces, 
                 "normals":self.Normals.Normals, 
-                "uvs":self.UVs.UVs}
+                "uvs":self.UVs.UVs,
+                "weights":self.Weights.Weights}
         
 class FModel():
     def __init__(self, FilePath):
@@ -73,6 +85,3 @@ class FModel():
     
     def traditionalMeshStructure(self):
         return [mesh.traditionalMeshStructure() for mesh in self.Meshparts]
-    
-    
-

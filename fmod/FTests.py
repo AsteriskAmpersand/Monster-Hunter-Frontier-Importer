@@ -11,7 +11,16 @@ sys.path.insert(0, r'..\common')
 from FileLike import FileLike
 from FBlock import FBlock
 from FMod import FModel
-
+"""
+if __name__ == "__main__":
+    filepath = r"E:\Projects\Frontier\KutKu\0001_0000003C\0001_00000014.fmod"
+    f = open(filepath,"rb")
+    data = FileLike(f.read())
+    f.close()
+    frontierFile = FBlock()
+    frontierFile.marshall(data)
+    frontierFile.prettyPrint()
+"""
 if __name__ == "__main__":
     frontier = r"G:\Frontier"
     separator="=========================================="

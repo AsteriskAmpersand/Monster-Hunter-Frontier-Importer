@@ -26,14 +26,19 @@ bl_info = {
 import bpy
 
 from .operators.fmodimport import ImportFMOD
+from .operators.fsklimport import ImportFSKL
 from .operators.fmodimport import menu_func_import as mhf_model_menu_func_import
+from .operators.fsklimport import menu_func_import as mhf_skele_menu_func_import
 def register():
     bpy.utils.register_class(ImportFMOD)
     bpy.types.INFO_MT_file_import.append(mhf_model_menu_func_import)
-
+    bpy.utils.register_class(ImportFSKL)
+    bpy.types.INFO_MT_file_import.append(mhf_skele_menu_func_import)
 def unregister():
     bpy.utils.unregister_class(ImportFMOD)
     bpy.types.INFO_MT_file_import.remove(mhf_model_menu_func_import)
+    bpy.utils.unregister_class(ImportFSKL)
+    bpy.types.INFO_MT_file_import.remove(mhf_skele_menu_func_import)
 
 if __name__ == "__main__":
     try:

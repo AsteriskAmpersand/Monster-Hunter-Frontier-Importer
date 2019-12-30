@@ -1,4 +1,4 @@
-import bpy,bmeshfrom bpy_extras 
+from bpy_extras import bpy,bmesh 
 from mathutils import Vector, Matrix
 from pathlib import Path
 
