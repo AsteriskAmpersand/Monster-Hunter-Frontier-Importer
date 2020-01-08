@@ -105,7 +105,9 @@ class DummyUVs():
     def __iter__(self):
         return cycle([(0,0)])
     def __getitem__(self,value):
-        return (0,0)
+        return (0,0)    
+class DummyWeight():
+    Weights = {}
 
 class FMesh():
     def __init__(self, ObjectBlock):
@@ -121,7 +123,8 @@ class FMesh():
                       rgbData:FRGB,weightData:FWeights,
                       boneMapData:FBoneRemap}#,UnknBlock:"UnknBlock"}
         defaultData = {"UVs":DummyUVs,"BoneRemap":DummyRemap,
-                       "MaterialList":DummyMaterials,"MaterialMap":DummyFaceMaterials}
+                       "MaterialList":DummyMaterials,"MaterialMap":DummyFaceMaterials,
+                       "Weights":DummyWeight}
         for objectBlock in Objects:
             typing = FBlock.typeLookup(objectBlock.Header.type)
             if typing in attributes:
