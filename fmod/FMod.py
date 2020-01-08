@@ -77,6 +77,9 @@ class FRemap():
     
     def __repr__(self):
         return str(self.remapTable)
+    
+    def __len__(self):
+        return len(self.remapTable)
 
 class FBoneRemap(FRemap):
     pass
@@ -118,11 +121,15 @@ class FMesh():
                       rgbData:FRGB,weightData:FWeights,
                       boneMapData:FBoneRemap}#,UnknBlock:"UnknBlock"}
         defaultData = {"UVs":DummyUVs,"BoneRemap":DummyRemap,
-                       "MaterialList":DummyFaceMaterials,"MaterialMap":DummyMaterials}
+                       "MaterialList":DummyMaterials,"MaterialMap":DummyFaceMaterials}
         for objectBlock in Objects:
             typing = FBlock.typeLookup(objectBlock.Header.type)
             if typing in attributes:
                 setattr(self,attributes[typing],typeData[typing](objectBlock))
+            if typing is FaceBlock:
+                tristripRepetition = self.calcStripLengths(objectBlock)
+        if hasattr(self,"MaterialMap"):
+            self.MaterialMap = self.decomposeMaterialList(self.MaterialMap,tristripRepetition)
         for attr in defaultData:
             if not hasattr(self,attr):
                 setattr(self,attr,defaultData[attr]())
@@ -138,6 +145,20 @@ class FMesh():
         self.BoneRemap = FBoneRemap(next(Objects))
         """
         #unknownBlock
+    @staticmethod
+    def calcStripLengths(faceBlock):
+        lengths = []
+        for tristripArray in faceBlock.Data:
+            for tristrip in tristripArray.Data:
+                lengths.append(len(tristrip.Data.vertices)-2)
+        return lengths
+
+    @staticmethod
+    def decomposeMaterialList(materialList,triStripCounts):
+        materialArray = []
+        for m,tlen in zip(materialList,triStripCounts):
+            materialArray += [m]*tlen
+        return materialArray
         
     def traditionalMeshStructure(self):
         return {"vertices":self.Vertices.Vertices, 

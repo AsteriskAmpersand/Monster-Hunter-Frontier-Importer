@@ -66,11 +66,12 @@ class FModImporter():
         blenderBMesh.from_mesh(blenderMesh)
         uv_layer = blenderBMesh.loops.layers.uv["UV0"]
         blenderBMesh.faces.ensure_lookup_table()
-        for face,matIx in zip(blenderBMesh.faces,faceMaterials):
+        for face in blenderBMesh.faces:
             for loop in face.loops:
                 #BlenderImporterAPI.dbg.write("\t%d\n"%loop.vert.index)
                 loop[uv_layer].uv = uv[loop.vert.index]
-                face.material_index = matIx
+            print("%d/%d/%d"%(face.index,len(faceMaterials),len(blenderBMesh.faces)))
+            face.material_index = faceMaterials[face.index]
         blenderBMesh.to_mesh(blenderMesh)
         blenderMesh.update()
         return uvtex
