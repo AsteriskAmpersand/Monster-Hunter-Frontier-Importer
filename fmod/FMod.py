@@ -56,28 +56,39 @@ class FWeights():
                 groups[weight.boneID].append((vertID,weight.weightValue/100))
         self.Weights = groups
 
-class FBoneRemap():
-    def __init__(self, BoneRemapBlock):
+class FRemap():
+    def __init__(self, RemapBlock):
         self.remapTable = []
-        for boneID in BoneRemapBlock.Data:
-            self.remapTable.append(boneID.Data.id)
+        for ID in RemapBlock.Data:
+            self.remapTable.append(ID.Data.id)
         
     def __getitem__(self,key):
         return self.remapTable[key]
+    
+    def __iter__(self):
+        return iter(self.remapTable)
+
+class FBoneRemap(FRemap):
+    pass
+
+class FMatList(FRemap):
+    pass
+
+class FMatPerTri(FRemap):
+    pass
 
 class FMesh():
     def __init__(self, ObjectBlock):
         Objects = iter(ObjectBlock.Data)
         self.Faces = FFaces(next(Objects))
-        self.UnknownSingular = FUnkSing(next(Objects))#Material List
-        self.UnknownTriData = FTriData(next(Objects))#Material Map
+        self.MaterialList = FMatList(next(Objects))#Material List
+        self.MaterialMap = FMatPerTri(next(Objects))#Material Map
         self.Vertices = FVertices(next(Objects))
         self.Normals = FNormals(next(Objects))
         self.UVs = FUVs(next(Objects))
         self.RGBLike = FRGB(next(Objects))
         self.Weights = FWeights(next(Objects))
         self.BoneRemap = FBoneRemap(next(Objects))
-        #boneMap
         #unknownBlock
         
     def traditionalMeshStructure(self):
@@ -86,7 +97,9 @@ class FMesh():
                 "normals":self.Normals.Normals, 
                 "uvs":self.UVs.UVs,
                 "weights":self.Weights.Weights,
-                "boneRemap":self.BoneRemap}
+                "boneRemap":self.BoneRemap,
+                "materials":self.MaterialList,
+                "faceMaterial":self.MaterialMap,}
         
 class FModel():
     def __init__(self, FilePath):

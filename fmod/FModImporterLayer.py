@@ -30,8 +30,10 @@ class FModImporter():
         FModImporter.setNormals(mesh["normals"],blenderMesh)
         #UVs
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
-        uvLayer = FModImporter.createTextureLayer("UV%d"%0, blenderMesh, mesh["uvs"])
-        uvLayer.active = ix == 0
+        #, mesh["materials"], mesh["faceMaterial"]
+        uvLayer = FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
+        if uvLayer:
+            uvLayer[0].active = ix == 0
         if import_textures:
             FModImporter.importTextures(blenderObject, modelPath)
         #Weights
@@ -49,22 +51,27 @@ class FModImporter():
         return blenderMesh, blenderObject
     
     @staticmethod
-    def createTextureLayer(name, blenderMesh, uv):#texFaces):
+    def createTextureLayer(blenderMesh, uv, materialList, faceMaterials):#texFaces):
         #if bpy.context.active_object.mode!='OBJECT':
         #    bpy.ops.object.mode_set(mode='OBJECT')
-        blenderMesh.uv_textures.new(name)
+        materials = []
+        layers = []
+        for material in materialList:
+            materials.append(blenderMesh.uv_textures.new("UV-%03d"%material))
         blenderMesh.update()
         blenderBMesh = bmesh.new()
         blenderBMesh.from_mesh(blenderMesh)
-        uv_layer = blenderBMesh.loops.layers.uv[name]
         blenderBMesh.faces.ensure_lookup_table()
-        for face in blenderBMesh.faces:
+        for material in materialList:
+            layers.append(blenderBMesh.loops.layers.uv["UV-%03d"%material])
+        for face,matIx in zip(blenderBMesh.faces,faceMaterials):
             for loop in face.loops:
                 #BlenderImporterAPI.dbg.write("\t%d\n"%loop.vert.index)
+                uv_layer = layers[matIx]
                 loop[uv_layer].uv = uv[loop.vert.index]
         blenderBMesh.to_mesh(blenderMesh)
         blenderMesh.update()
-        return blenderMesh.uv_textures[name]
+        return materials
 		
     @staticmethod
     def setNormals(normals, meshpart):
@@ -117,7 +124,7 @@ class FModImporter():
             filepath = FModImporter.prayToGod(path)
             textureData = FModImporter.fetchTexture(filepath)
             FModImporter.assignTexture(mesh, textureData)
-        except Exception as e:
+        except Exception as _:
             pass
             
     @staticmethod
