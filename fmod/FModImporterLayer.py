@@ -32,14 +32,13 @@ class FModImporter():
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
         #, mesh["materials"], mesh["faceMaterial"]
         uvLayer = FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
-        #print("Pre Explodo")
-        #if uvLayer:
-        #    uvLayer[0].active = ix == 0
-        #print("Post Explodo")
-        #if import_textures:
-            #print("Super Explodo")
-            #FModImporter.importTextures(blenderObject, modelPath)
-        #print("No Explodo")
+        print("Pre Explodo")
+        uvLayer.active = ix == 0
+        print("Post Explodo")
+        if import_textures:
+            print("Super Explodo")
+            FModImporter.importTextures(blenderObject, modelPath)
+        print("No Explodo")
         #Weights
         FModImporter.setWeights(mesh["weights"],mesh["boneRemap"],blenderObject)
         blenderMesh.update()
@@ -58,24 +57,27 @@ class FModImporter():
     def createTextureLayer(blenderMesh, uv, materialList, faceMaterials):#texFaces):
         #if bpy.context.active_object.mode!='OBJECT':
         #    bpy.ops.object.mode_set(mode='OBJECT')
-        materials = []
-        layers = []
         for material in materialList:
-            materials.append(blenderMesh.uv_textures.new("UV-%03d"%material))
+            matname = "Material-%03d"%material
+            if matname not in bpy.data.materials:
+                bpy.data.materials.new(name=matname)
+            mat = bpy.data.materials[matname]
+            blenderMesh.materials.append(mat)
+            #materials.append(mat)
+        uvtex = blenderMesh.uv_textures.new("UV0")
         blenderMesh.update()
         blenderBMesh = bmesh.new()
         blenderBMesh.from_mesh(blenderMesh)
+        uv_layer = blenderBMesh.loops.layers.uv["UV0"]
         blenderBMesh.faces.ensure_lookup_table()
-        for material in materials:
-            layers.append(blenderBMesh.loops.layers.uv[material.name])
         for face,matIx in zip(blenderBMesh.faces,faceMaterials):
             for loop in face.loops:
                 #BlenderImporterAPI.dbg.write("\t%d\n"%loop.vert.index)
-                uv_layer = layers[matIx]
                 loop[uv_layer].uv = uv[loop.vert.index]
+                face.material_index = matIx
         blenderBMesh.to_mesh(blenderMesh)
         blenderMesh.update()
-        return materials
+        return uvtex
 		
     @staticmethod
     def setNormals(normals, meshpart):
@@ -128,7 +130,7 @@ class FModImporter():
             filepath = FModImporter.prayToGod(path)
             textureData = FModImporter.fetchTexture(filepath)
             FModImporter.assignTexture(mesh, textureData)
-        except Exception as _:
+        except:
             pass
             
     @staticmethod
@@ -148,6 +150,7 @@ class FModImporter():
     @staticmethod
     def prayToGod(path):
         modelPath = Path(path)
+        print(modelPath)
         candidates = [modelPath.parent,
                       *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f>modelPath.parent]),
                       *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f<modelPath.parent])
