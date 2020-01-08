@@ -120,14 +120,15 @@ class FBlock():
         subData = FileLike(data.read(self.Header.size-len(self.Header)))
         self.Data = [self.getType() for _ in range(self.Header.count)]
         [datum.marshall(subData) for datum in self.Data]
-        
     def prettyPrint(self, base = ""):
         name = type(self.getType()).__name__
         print(base+name+":"+" "+str(self.Header.count) + " \t"+hex(self.Header.type))
         for datum in self.Data:
             datum.prettyPrint(base+"\t")
-        
     def getType(self):     
+        return self.typeLookup(self.Header.type)()    
+    @staticmethod
+    def typeLookup(value):
         types = {
             0x00020000:InitBlock,
             0x00000001:FileBlock,
@@ -149,8 +150,7 @@ class FBlock():
             0x000C0000:weightData,
             0x00100000:boneMapData,
             }
-        return types[self.Header.type]() if self.Header.type in types else UnknBlock()
-
+        return types[value] if value in types else UnknBlock
 class FileBlock(FBlock):
     pass
 class MainBlock(FBlock):

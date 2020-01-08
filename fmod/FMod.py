@@ -4,14 +4,21 @@ Created on Fri Apr  5 23:03:36 2019
 
 @author: AsteriskAmpersand
 """
+from itertools import cycle
 try:
     from ..fmod.FBlock import FBlock
-    from ..common.FileLike import FileLike
+    from ..fmod.FBlock import (FaceBlock, materialList, materialMap, vertexData,
+                               normalsData,uvData,rgbData,weightData,boneMapData,
+                               UnknBlock)
+    from ..common.FileLike import FileLike  
 except:
     import sys
     sys.path.insert(0, r'..\common')
     sys.path.insert(0, r'..\fmod')
     from FBlock import FBlock
+    from FBlock import (FaceBlock, materialList, materialMap, vertexData,
+                               normalsData,uvData,rgbData,weightData,boneMapData,
+                               UnknBlock)
     from FileLike import FileLike    
 
 class FFaces():
@@ -67,6 +74,9 @@ class FRemap():
     
     def __iter__(self):
         return iter(self.remapTable)
+    
+    def __repr__(self):
+        return str(self.remapTable)
 
 class FBoneRemap(FRemap):
     pass
@@ -77,9 +87,46 @@ class FMatList(FRemap):
 class FMatPerTri(FRemap):
     pass
 
+class DummyRemap():
+    def __getitem__(self,value):
+        return value
+class DummyMaterials():
+    def __iter__(self):
+        return iter([0])
+class DummyFaceMaterials():
+    def __iter__(self):
+        return cycle([0])
+    def __getitem__(self,value):
+        return 0
+class DummyUVs():
+    def __iter__(self):
+        return cycle([(0,0)])
+    def __getitem__(self,value):
+        return (0,0)
+
 class FMesh():
     def __init__(self, ObjectBlock):
-        Objects = iter(ObjectBlock.Data)
+        Objects = ObjectBlock.Data
+        attributes = {FaceBlock:"Faces",materialList:"MaterialList",
+                      materialMap:"MaterialMap",vertexData:"Vertices",
+                      normalsData:"Normals",uvData:"UVs",
+                      rgbData:"RGBLike",weightData:"Weights",
+                      boneMapData:"BoneRemap"}#,UnknBlock:"UnknBlock"}
+        typeData = {FaceBlock:FFaces,materialList:FMatList,
+                      materialMap:FMatPerTri,vertexData:FVertices,
+                      normalsData:FNormals,uvData:FUVs,
+                      rgbData:FRGB,weightData:FWeights,
+                      boneMapData:FBoneRemap}#,UnknBlock:"UnknBlock"}
+        defaultData = {"UVs":DummyUVs,"BoneRemap":DummyRemap,
+                       "MaterialList":DummyFaceMaterials,"MaterialMap":DummyMaterials}
+        for objectBlock in Objects:
+            typing = FBlock.typeLookup(objectBlock.Header.type)
+            if typing in attributes:
+                setattr(self,attributes[typing],typeData[typing](objectBlock))
+        for attr in defaultData:
+            if not hasattr(self,attr):
+                setattr(self,attr,defaultData[attr]())
+        """
         self.Faces = FFaces(next(Objects))
         self.MaterialList = FMatList(next(Objects))#Material List
         self.MaterialMap = FMatPerTri(next(Objects))#Material Map
@@ -89,6 +136,7 @@ class FMesh():
         self.RGBLike = FRGB(next(Objects))
         self.Weights = FWeights(next(Objects))
         self.BoneRemap = FBoneRemap(next(Objects))
+        """
         #unknownBlock
         
     def traditionalMeshStructure(self):

@@ -32,10 +32,14 @@ class FModImporter():
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
         #, mesh["materials"], mesh["faceMaterial"]
         uvLayer = FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
-        if uvLayer:
-            uvLayer[0].active = ix == 0
-        if import_textures:
-            FModImporter.importTextures(blenderObject, modelPath)
+        #print("Pre Explodo")
+        #if uvLayer:
+        #    uvLayer[0].active = ix == 0
+        #print("Post Explodo")
+        #if import_textures:
+            #print("Super Explodo")
+            #FModImporter.importTextures(blenderObject, modelPath)
+        #print("No Explodo")
         #Weights
         FModImporter.setWeights(mesh["weights"],mesh["boneRemap"],blenderObject)
         blenderMesh.update()
