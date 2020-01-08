@@ -5,4 +5,5 @@ A model importer for Monster Hunter Frontier FMod Files
 * **AsteriskAmpersand/\*&**
 
 # Acknowledgements
-* **MHVuze** - For basically all of the documentation used to build this importer.
+* **MHVuze** - For the Frontier Recursive Block Format documentation used to build this importer.
+* **Silvris** - For the Materials and Skeleton documentation used to build this importer.
