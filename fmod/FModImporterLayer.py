@@ -66,8 +66,8 @@ class FModImporter():
         blenderBMesh = bmesh.new()
         blenderBMesh.from_mesh(blenderMesh)
         blenderBMesh.faces.ensure_lookup_table()
-        for material in materialList:
-            layers.append(blenderBMesh.loops.layers.uv["UV-%03d"%material])
+        for material in materials:
+            layers.append(blenderBMesh.loops.layers.uv[material.name])
         for face,matIx in zip(blenderBMesh.faces,faceMaterials):
             for loop in face.loops:
                 #BlenderImporterAPI.dbg.write("\t%d\n"%loop.vert.index)
