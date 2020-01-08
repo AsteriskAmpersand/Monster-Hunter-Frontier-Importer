@@ -35,7 +35,7 @@ class FModImporter():
         if import_textures:
             FModImporter.importTextures(blenderObject, modelPath)
         #Weights
-        FModImporter.setWeights(mesh["weights"],blenderObject)
+        FModImporter.setWeights(mesh["weights"],mesh["boneRemap"],blenderObject)
         blenderMesh.update()
         meshObjects.append(blenderObject)
         
@@ -82,8 +82,9 @@ class FModImporter():
         meshpart.show_edge_sharp = True
         
     @staticmethod
-    def setWeights(weights, meshObj):
-        for groupIx,group in weights.items():
+    def setWeights(weights, remap, meshObj):
+        for meshBoneIx,group in weights.items():
+            groupIx = remap[meshBoneIx]
             groupId = "%03d"%groupIx if isinstance(groupIx, int) else str(groupIx) 
             groupName = "Bone.%s"%str(groupId)
             for vertex,weight in group:

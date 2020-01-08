@@ -22,6 +22,11 @@ class byte4(PyCStruct):
             ("array","byte[4]"),
             ])
     
+class uintField(PyCStruct):
+    fields = OrderedDict([
+            ("id","uint32"),
+            ])
+    
 class uv(PyCStruct):
     fields = OrderedDict([
             ("u","float"),
@@ -91,6 +96,13 @@ class boneBlock(PyCStruct):
             ("unkn2","uint32[46]"),
             ])
 
+class textureData(PyCStruct):
+    fields = OrderedDict([
+        ("imageID" , "uint32"),
+        ("width" , "uint32"),
+        ("height" , "uint32"),
+        ("unkn", "byte[244]")])
+    
 class FBlockHeader(PyCStruct):
     fields = OrderedDict([
             ("type","uint32"),
@@ -122,17 +134,20 @@ class FBlock():
             0x00000002:MainBlock,
             0x00000004:ObjectBlock,
             0x00000005:FaceBlock,
+            0x00000009:MaterialBlock,
+            0x0000000A:TextureBlock,
             0xC0000000:SkeletonBlock,
             0x40000001:boneBlock,
             0x00030000:trisStripsData,
             0x00040000:trisStripsData,
-            0x00050000:byteArrayData,
-            0x00060000:byteArrayData,
+            0x00050000:materialList,
+            0x00060000:materialMap,
             0x00070000:vertexData,
             0x00080000:normalsData,
             0x000A0000:uvData,
             0x000B0000:rgbData,
             0x000C0000:weightData,
+            0x00100000:boneMapData,
             }
         return types[self.Header.type]() if self.Header.type in types else UnknBlock()
 
@@ -146,6 +161,76 @@ class FaceBlock(FBlock):
     pass
 class SkeletonBlock(FBlock):
     pass
+class SimpleFBlock(FBlock):
+    def getType(self):
+        return self.ftype()
+    def prettyPrint(self,base = ""):
+        pass
+
+class materialHeader(PyCStruct):
+    fields = OrderedDict([
+            ("unkn1" , "uint32"),
+            ("unkn2" , "uint32"),
+            ("blockSize" , "uint32"),
+            ("unkn3" , "float"),
+            ("unkn4" , "float"),
+            ("unkn5" , "float"),
+            ("unkn6" , "float"),
+            ("unkn7" , "float"),
+            ("unkn8" , "float"),
+            ("unkn9" , "float"),
+            ("float0", "float"),
+            ("float1" , "float"),
+            ("float2" , "float"),
+            ("float3" , "float"),
+            ("textureCount" ,"uint32"),
+            ("unkn11" , "float"),
+            ("unkn12" , "uint32"),])
+    
+class materialChannelMapping(PyCStruct):
+    def __init__(self,blocksize):
+        if blocksize > 272:
+            self.fields = OrderedDict([
+                        ("unkn" , "uint32[%s]"%(blocksize-80)),
+                        ("TextureLinkDif" , "uint32"),
+                        ("TextureLinkNor" , "uint32"),
+                        ("TextureLinkSpe" , "uint32"),])
+        else:
+            self.fields = OrderedDict([
+                        ("unkn" , "byte[%s]"%(blocksize-72)),
+                        ("TextureLinkDif" , "uint32"),])
+        super().__init__()
+    
+class materialData(PyCStruct):
+    fields = OrderedDict([
+            ("unkn3" , "float"),
+            ("unkn4" , "float"),
+            ("unkn5" , "float"),
+            ("unkn6" , "float"),
+            ("unkn7" , "float"),
+            ("unkn8" , "float"),
+            ("unkn9" , "float"),
+            ("float0", "float"),
+            ("float1" , "float"),
+            ("float2" , "float"),
+            ("float3" , "float"),
+            ("textureCount" ,"uint32"),
+            ("unkn11" , "float"),
+            ("unkn12" , "uint32"),
+            ("unkn" , "byte[80]"),])
+    """
+    def marshall(self,data):
+        self.Header = materialHeader()
+        self.Header.marshall(data)
+        self.Channels = materialChannelMapping(self.Header.blockSize)
+        self.Channels.marshall(data)
+        return self"""
+
+class TextureBlock(SimpleFBlock):
+    ftype = textureData
+    
+class MaterialBlock(SimpleFBlock):
+    ftype = materialData
 
 class InitData(PyCStruct):
     fields = {"data":"uint32"}
@@ -175,6 +260,12 @@ class trisStripsData(dataContainer):
     dataType = tristrip
 class byteArrayData(dataContainer):
     dataType = byte4
+class materialList(dataContainer):
+    dataType = uintField
+class materialMap(dataContainer):
+    dataType = uintField
+class boneMapData(dataContainer):
+    dataType = uintField
 class vertexData(dataContainer):  
     dataType = position
 class normalsData(dataContainer):  

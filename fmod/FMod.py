@@ -56,24 +56,37 @@ class FWeights():
                 groups[weight.boneID].append((vertID,weight.weightValue/100))
         self.Weights = groups
 
+class FBoneRemap():
+    def __init__(self, BoneRemapBlock):
+        self.remapTable = []
+        for boneID in BoneRemapBlock.Data:
+            self.remapTable.append(boneID.Data.id)
+        
+    def __getitem__(self,key):
+        return self.remapTable[key]
+
 class FMesh():
     def __init__(self, ObjectBlock):
         Objects = iter(ObjectBlock.Data)
         self.Faces = FFaces(next(Objects))
-        self.UnknownSingular = FUnkSing(next(Objects))
-        self.UnknownTriData = FTriData(next(Objects))
+        self.UnknownSingular = FUnkSing(next(Objects))#Material List
+        self.UnknownTriData = FTriData(next(Objects))#Material Map
         self.Vertices = FVertices(next(Objects))
         self.Normals = FNormals(next(Objects))
         self.UVs = FUVs(next(Objects))
         self.RGBLike = FRGB(next(Objects))
         self.Weights = FWeights(next(Objects))
+        self.BoneRemap = FBoneRemap(next(Objects))
+        #boneMap
+        #unknownBlock
         
     def traditionalMeshStructure(self):
         return {"vertices":self.Vertices.Vertices, 
                 "faces":self.Faces.Faces, 
                 "normals":self.Normals.Normals, 
                 "uvs":self.UVs.UVs,
-                "weights":self.Weights.Weights}
+                "weights":self.Weights.Weights,
+                "boneRemap":self.BoneRemap}
         
 class FModel():
     def __init__(self, FilePath):
@@ -82,6 +95,7 @@ class FModel():
             frontierFile.marshall(FileLike(modelFile.read()))
         Meshes = frontierFile.Data[1].Data
         self.Meshparts = [FMesh(Mesh) for Mesh in Meshes]
+        frontierFile.prettyPrint()
     
     def traditionalMeshStructure(self):
         return [mesh.traditionalMeshStructure() for mesh in self.Meshparts]
