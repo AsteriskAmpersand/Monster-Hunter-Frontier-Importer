@@ -32,13 +32,9 @@ class FModImporter():
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
         #, mesh["materials"], mesh["faceMaterial"]
         uvLayer = FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
-        print("Pre Explodo")
         uvLayer.active = ix == 0
-        print("Post Explodo")
         if import_textures:
-            print("Super Explodo")
             FModImporter.importTextures(blenderObject, modelPath)
-        print("No Explodo")
         #Weights
         FModImporter.setWeights(mesh["weights"],mesh["boneRemap"],blenderObject)
         blenderMesh.update()
@@ -150,7 +146,6 @@ class FModImporter():
     @staticmethod
     def prayToGod(path):
         modelPath = Path(path)
-        print(modelPath)
         candidates = [modelPath.parent,
                       *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f>modelPath.parent]),
                       *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f<modelPath.parent])
