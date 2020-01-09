@@ -31,8 +31,7 @@ class FModImporter():
         #UVs
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
         #, mesh["materials"], mesh["faceMaterial"]
-        uvLayer = FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
-        uvLayer.active = ix == 0
+        FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
         if import_textures:
             FModImporter.importTextures(blenderObject, modelPath)
         #Weights
@@ -60,7 +59,7 @@ class FModImporter():
             mat = bpy.data.materials[matname]
             blenderMesh.materials.append(mat)
             #materials.append(mat)
-        uvtex = blenderMesh.uv_textures.new("UV0")
+        blenderMesh.uv_textures.new("UV0")
         blenderMesh.update()
         blenderBMesh = bmesh.new()
         blenderBMesh.from_mesh(blenderMesh)
@@ -70,11 +69,11 @@ class FModImporter():
             for loop in face.loops:
                 #BlenderImporterAPI.dbg.write("\t%d\n"%loop.vert.index)
                 loop[uv_layer].uv = uv[loop.vert.index]
-            print("%d/%d/%d"%(face.index,len(faceMaterials),len(blenderBMesh.faces)))
+            #print("%d/%d/%d"%(face.index,len(faceMaterials),len(blenderBMesh.faces)))
             face.material_index = faceMaterials[face.index]
         blenderBMesh.to_mesh(blenderMesh)
         blenderMesh.update()
-        return uvtex
+        return #uvtex
 		
     @staticmethod
     def setNormals(normals, meshpart):
