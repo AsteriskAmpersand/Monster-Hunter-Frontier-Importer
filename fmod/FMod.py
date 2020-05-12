@@ -179,6 +179,7 @@ class FMat():
         self.textureIndices = [Textures[ix.index].Data[0].imageID for ix in MatBlock.Data[0].textureIndices]
     def getDiffuse(self):
         #print(len(self.textureIndices))
+        print(self.textureIndices)
         return self.textureIndices[0] if len(self.textureIndices) >= 1 else None
     def getNormal(self):
         return self.textureIndices[1] if len(self.textureIndices) >= 2 else None

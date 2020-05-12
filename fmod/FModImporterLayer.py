@@ -128,6 +128,8 @@ class FModImporter():
     def importTextures(materials, path): 
         def getTexture(ix):
             filepath = FModImporter.prayToGod(path,ix)
+            print(ix)
+            print(filepath)
             return FModImporter.fetchTexture(filepath)
         
         for mat in bpy.data.materials:
@@ -146,7 +148,7 @@ class FModImporter():
                 # Construction        
                 setup = principledSetup(nodeTree) 
                 next(setup)
-                if diffuseIx:
+                if diffuseIx is not None:
                     diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
                     setup.send(diffuseNode)
                 else: setup.send(None)
