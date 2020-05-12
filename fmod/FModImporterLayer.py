@@ -149,7 +149,7 @@ class FModImporter():
                 if diffuseIx:
                     diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
                     setup.send(diffuseNode)
-                else: continue
+                else: setup.send(None)
                 #setup.send(None)
                 if normalIx is not None:
                     normalNode = normalSetup(nodeTree,getTexture(normalIx) )
