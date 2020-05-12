@@ -146,8 +146,9 @@ class FModImporter():
                 # Construction        
                 setup = principledSetup(nodeTree) 
                 next(setup)
-                diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
-                setup.send(diffuseNode)
+                if diffuseIx:
+                    diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
+                    setup.send(diffuseNode)
                 if normalIx is not None:
                     normalNode = normalSetup(nodeTree,getTexture(normalIx) )
                     setup.send(normalNode)
