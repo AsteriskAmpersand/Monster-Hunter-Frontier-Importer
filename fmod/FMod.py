@@ -181,9 +181,9 @@ class FMat():
         #print(len(self.textureIndices))
         return self.textureIndices[0]
     def getNormal(self):
-        return self.textureIndices[1] if len(self.textureIndices) < 2 else None
+        return self.textureIndices[1] if len(self.textureIndices) >= 2 else None
     def getSpecular(self):
-        return self.textureIndices[2] if len(self.textureIndices) < 3 else None
+        return self.textureIndices[2] if len(self.textureIndices) >= 3 else None
 
 class FModel():
     def __init__(self, FilePath):

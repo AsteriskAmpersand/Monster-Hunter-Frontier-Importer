@@ -11,7 +11,7 @@ import bmesh
 import array
 import os
 from pathlib import Path
-
+from ..blender.BlenderNodesFunctions import principledSetup, diffuseSetup, normalSetup, specularSetup, finishSetup
 class FModImporter():   
     @staticmethod
     def execute(fmodPath, import_textures):
@@ -57,7 +57,7 @@ class FModImporter():
         #if bpy.context.active_object.mode!='OBJECT':
         #    bpy.ops.object.mode_set(mode='OBJECT')
         for material in materialList:
-            matname = "Material-%03d"%material
+            matname = "FrontierMaterial-%03d"%material
             if matname not in bpy.data.materials:
                 bpy.data.materials.new(name=matname)
             mat = bpy.data.materials[matname]
@@ -112,7 +112,7 @@ class FModImporter():
             if a.type == 'VIEW_3D':
                 for s in a.spaces:
                     if s.type == 'VIEW_3D':
-                        s.clip_end = 10**9
+                        s.clip_end = 10**4
 
     @staticmethod
     def clearScene():
@@ -125,79 +125,41 @@ class FModImporter():
         return
     
     @staticmethod
-    def importTextures(materials, path):   
+    def importTextures(materials, path): 
+        def getTexture(ix):
+            filepath = FModImporter.prayToGod(path,ix)
+            return FModImporter.fetchTexture(filepath)
+        
         for mat in bpy.data.materials:
-            mat.use_nodes=True
-            nodeTree = mat.node_tree
-            nodes = nodeTree.nodes
-            for node in nodes:
-                nodes.remove(node)
-                
-            ix = int(mat.name.split("-")[1])
-            diffuseIx = materials[ix].getDiffuse()
-            normalIx = materials[ix].getNormal()
-            specularIx = materials[ix].getSpecular()
-            #try:
-            filepath = FModImporter.prayToGod(path,diffuseIx)
-            textureData = FModImporter.fetchTexture(filepath)
-            diffuseNode = FModImporter.diffuseSetup(nodeTree,textureData)
-            endNode = diffuseNode
-            if normalIx is not None:
-                pass
-            if specularIx is not None:
-                pass
-            FModImporter.finishSetup(nodeTree,endNode)
-                #FModImporter.assignTexture(mesh, textureData)
-            #except:
-            #    pass
-            
-    @staticmethod
-    def finishSetup(nodeTree, endNode):
-        outputNode = nodeTree.nodes.new(type="ShaderNodeOutputMaterial")
-        nodeTree.links.new(endNode.outputs[0],outputNode.inputs[0])
-        return
-    @staticmethod
-    def createTexNode(nodeTree,color,texture,name):
-        baseType = "ShaderNodeTexImage"
-        node = nodeTree.nodes.new(type=baseType)
-        node.color_space = color
-        node.image = texture
-        node.name = name
-        return node
-    @staticmethod
-    def diffuseSetup(nodeTree,texture,*args):
-        #Create DiffuseTexture
-        diffuseNode = FModImporter.createTexNode(nodeTree,"COLOR",texture,"Diffuse Texture")
-        #Create DiffuseBSDF
-        #bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfDiffuse")
-        #bsdfNode.name = "Diffuse BSDF"          
-        #Plug Diffuse Texture to BDSF (color -> color)
-        #nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
-        return diffuseNode
-    @staticmethod
-    def normalSetup(nodeTree,texture,*args):
-        #Create NormalMapData
-        normalNode = FModImporter.createTexNode(nodeTree,"NONE",texture,"Normal Texture")
-        #Create InvertNode
-        inverterNode = nodeTree.nodes.new(type="ShaderNodeInvert")
-        inverterNode.name = "Normal Inverter"
-        #Create NormalMapNode
-        normalmapNode = nodeTree.nodes.new(type="ShaderNodeNormalMap")
-        normalmapNode.name = "Normal Map"
-        #Plug Normal Data to Node (color -> color)
-        nodeTree.links.new(normalNode.outputs[0],inverterNode.inputs[1])
-        nodeTree.links.new(inverterNode.outputs[0],normalmapNode.inputs[1])
-        return normalmapNode
-    @staticmethod
-    def specularSetup(nodeTree,texture,*args):
-        #Create SpecularityMaterial
-        specularNode = FModImporter.createTexNode(nodeTree,"NONE",texture,"Specular Texture")
-        #Create RGB Curves
-        curveNode = nodeTree.nodes.new(type="ShaderNodeRGBCurve")
-        curveNode.name = "Specular Curve"
-        #Plug Specularity Color to RGB Curves (color -> color)
-        nodeTree.links.new(specularNode.outputs[0],curveNode.inputs[0])
-        return curveNode
+            if "FrontierMaterial" in mat.name:
+                # Setup
+                mat.use_nodes=True
+                nodeTree = mat.node_tree
+                nodes = nodeTree.nodes
+                for node in nodes:
+                    nodes.remove(node)
+                # Preamble
+                ix = int(mat.name.split("-")[1])
+                diffuseIx = materials[ix].getDiffuse()
+                normalIx = materials[ix].getNormal()
+                specularIx = materials[ix].getSpecular()
+                # Construction        
+                setup = principledSetup(nodeTree) 
+                next(setup)
+                diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
+                setup.send(diffuseNode)
+                if normalIx is not None:
+                    normalNode = normalSetup(nodeTree,getTexture(normalIx) )
+                    setup.send(normalNode)
+                else: setup.send(None)
+                if specularIx is not None:
+                    specularNode = specularSetup(nodeTree,getTexture(specularIx) )
+                    setup.send(specularNode)
+                else: setup.send(None)
+                finishSetup(nodeTree,next(setup))
+                    #FModImporter.assignTexture(mesh, textureData)
+                #except:
+                #    pass            
             
     @staticmethod
     def assignTexture(meshObject, textureData):
