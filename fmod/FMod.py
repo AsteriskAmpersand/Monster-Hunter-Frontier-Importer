@@ -9,7 +9,7 @@ try:
     from ..fmod.FBlock import FBlock
     from ..fmod.FBlock import (FaceBlock, materialList, materialMap, vertexData,
                                normalsData,uvData,rgbData,weightData,boneMapData,
-                               UnknBlock)
+                               )
     from ..common.FileLike import FileLike  
 except:
     import sys
@@ -18,7 +18,7 @@ except:
     from FBlock import FBlock
     from FBlock import (FaceBlock, materialList, materialMap, vertexData,
                                normalsData,uvData,rgbData,weightData,boneMapData,
-                               UnknBlock)
+                               )
     from FileLike import FileLike    
 
 class FFaces():
@@ -84,7 +84,7 @@ class FRemap():
 class FBoneRemap(FRemap):
     pass
 
-class FMatList(FRemap):
+class FMatRemapList(FRemap):
     pass
 
 class FMatPerTri(FRemap):
@@ -93,7 +93,7 @@ class FMatPerTri(FRemap):
 class DummyRemap():
     def __getitem__(self,value):
         return value
-class DummyMaterials():
+class DummyMaterialsIndices():
     def __iter__(self):
         return iter([0])
 class DummyFaceMaterials():
@@ -115,15 +115,15 @@ class FMesh():
         attributes = {FaceBlock:"Faces",materialList:"MaterialList",
                       materialMap:"MaterialMap",vertexData:"Vertices",
                       normalsData:"Normals",uvData:"UVs",
-                      rgbData:"RGBLike",weightData:"Weights",
+                      rgbData:"RGBLike",weightData:"Weights",                      
                       boneMapData:"BoneRemap"}#,UnknBlock:"UnknBlock"}
-        typeData = {FaceBlock:FFaces,materialList:FMatList,
+        typeData = {FaceBlock:FFaces,materialList:FMatRemapList,
                       materialMap:FMatPerTri,vertexData:FVertices,
                       normalsData:FNormals,uvData:FUVs,
-                      rgbData:FRGB,weightData:FWeights,
+                      rgbData:FRGB,weightData:FWeights,                      
                       boneMapData:FBoneRemap}#,UnknBlock:"UnknBlock"}
         defaultData = {"UVs":DummyUVs,"BoneRemap":DummyRemap,
-                       "MaterialList":DummyMaterials,"MaterialMap":DummyFaceMaterials,
+                       "MaterialList":DummyMaterialsIndices,"MaterialMap":DummyFaceMaterials,
                        "Weights":DummyWeight}
         for objectBlock in Objects:
             typing = FBlock.typeLookup(objectBlock.Header.type)
@@ -172,15 +172,31 @@ class FMesh():
                 "boneRemap":self.BoneRemap,
                 "materials":self.MaterialList,
                 "faceMaterial":self.MaterialMap,}
-        
+
+class FMat():
+    def __init__(self,MatBlock,Textures):
+        #print(len(MatBlock.Data[0].textureIndices))        
+        self.textureIndices = [Textures[ix.index].Data[0].imageID for ix in MatBlock.Data[0].textureIndices]
+    def getDiffuse(self):
+        #print(len(self.textureIndices))
+        return self.textureIndices[0]
+    def getNormal(self):
+        return self.textureIndices[1] if len(self.textureIndices) < 2 else None
+    def getSpecular(self):
+        return self.textureIndices[2] if len(self.textureIndices) < 3 else None
+
 class FModel():
     def __init__(self, FilePath):
         with open(FilePath, "rb") as modelFile:
             frontierFile = FBlock()
             frontierFile.marshall(FileLike(modelFile.read()))
         Meshes = frontierFile.Data[1].Data
+        Materials = frontierFile.Data[2].Data
+        Textures = frontierFile.Data[3].Data
         self.Meshparts = [FMesh(Mesh) for Mesh in Meshes]
+        self.Materials = [FMat(Material,Textures) for Material in Materials]
         frontierFile.prettyPrint()
     
     def traditionalMeshStructure(self):
         return [mesh.traditionalMeshStructure() for mesh in self.Meshparts]
+    

@@ -15,32 +15,36 @@ from pathlib import Path
 class FModImporter():   
     @staticmethod
     def execute(fmodPath, import_textures):
-        meshes = FModel(fmodPath).traditionalMeshStructure()
+        bpy.context.scene.render.engine = 'CYCLES'
+        fmod = FModel(fmodPath)
+        meshes = fmod.traditionalMeshStructure()
+        materials = fmod.Materials
         for ix, mesh in enumerate(meshes):
-            FModImporter.importMesh(ix, mesh, fmodPath, import_textures)
+            FModImporter.importMesh(ix, mesh)
+        if import_textures:
+            FModImporter.importTextures(materials, fmodPath)
             
     @staticmethod
-    def importMesh(ix,mesh, modelPath, import_textures):
+    def importMesh(ix,mesh):
         meshObjects = []
         bpy.ops.object.select_all(action='DESELECT')
 
         #Geometry
-        blenderMesh, blenderObject = FModImporter.createMesh("FModMeshpart %03d"%(ix),mesh, modelPath)
+        blenderMesh, blenderObject = FModImporter.createMesh("FModMeshpart %03d"%(ix),mesh)
         #Normals Handling
         FModImporter.setNormals(mesh["normals"],blenderMesh)
         #UVs
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
         #, mesh["materials"], mesh["faceMaterial"]
         FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
-        if import_textures:
-            FModImporter.importTextures(blenderObject, modelPath)
+        
         #Weights
         FModImporter.setWeights(mesh["weights"],mesh["boneRemap"],blenderObject)
         blenderMesh.update()
         meshObjects.append(blenderObject)
         
     @staticmethod
-    def createMesh(name, meshpart, modelPath):
+    def createMesh(name, meshpart):
         blenderMesh = bpy.data.meshes.new("%s"%(name))
         blenderMesh.from_pydata(meshpart["vertices"],[],meshpart["faces"])
         blenderMesh.update()
@@ -121,13 +125,79 @@ class FModImporter():
         return
     
     @staticmethod
-    def importTextures(mesh, path):
-        try:
-            filepath = FModImporter.prayToGod(path)
+    def importTextures(materials, path):   
+        for mat in bpy.data.materials:
+            mat.use_nodes=True
+            nodeTree = mat.node_tree
+            nodes = nodeTree.nodes
+            for node in nodes:
+                nodes.remove(node)
+                
+            ix = int(mat.name.split("-")[1])
+            diffuseIx = materials[ix].getDiffuse()
+            normalIx = materials[ix].getNormal()
+            specularIx = materials[ix].getSpecular()
+            #try:
+            filepath = FModImporter.prayToGod(path,diffuseIx)
             textureData = FModImporter.fetchTexture(filepath)
-            FModImporter.assignTexture(mesh, textureData)
-        except:
-            pass
+            diffuseNode = FModImporter.diffuseSetup(nodeTree,textureData)
+            endNode = diffuseNode
+            if normalIx is not None:
+                pass
+            if specularIx is not None:
+                pass
+            FModImporter.finishSetup(nodeTree,endNode)
+                #FModImporter.assignTexture(mesh, textureData)
+            #except:
+            #    pass
+            
+    @staticmethod
+    def finishSetup(nodeTree, endNode):
+        outputNode = nodeTree.nodes.new(type="ShaderNodeOutputMaterial")
+        nodeTree.links.new(endNode.outputs[0],outputNode.inputs[0])
+        return
+    @staticmethod
+    def createTexNode(nodeTree,color,texture,name):
+        baseType = "ShaderNodeTexImage"
+        node = nodeTree.nodes.new(type=baseType)
+        node.color_space = color
+        node.image = texture
+        node.name = name
+        return node
+    @staticmethod
+    def diffuseSetup(nodeTree,texture,*args):
+        #Create DiffuseTexture
+        diffuseNode = FModImporter.createTexNode(nodeTree,"COLOR",texture,"Diffuse Texture")
+        #Create DiffuseBSDF
+        #bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfDiffuse")
+        #bsdfNode.name = "Diffuse BSDF"          
+        #Plug Diffuse Texture to BDSF (color -> color)
+        #nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
+        return diffuseNode
+    @staticmethod
+    def normalSetup(nodeTree,texture,*args):
+        #Create NormalMapData
+        normalNode = FModImporter.createTexNode(nodeTree,"NONE",texture,"Normal Texture")
+        #Create InvertNode
+        inverterNode = nodeTree.nodes.new(type="ShaderNodeInvert")
+        inverterNode.name = "Normal Inverter"
+        #Create NormalMapNode
+        normalmapNode = nodeTree.nodes.new(type="ShaderNodeNormalMap")
+        normalmapNode.name = "Normal Map"
+        #Plug Normal Data to Node (color -> color)
+        nodeTree.links.new(normalNode.outputs[0],inverterNode.inputs[1])
+        nodeTree.links.new(inverterNode.outputs[0],normalmapNode.inputs[1])
+        return normalmapNode
+    @staticmethod
+    def specularSetup(nodeTree,texture,*args):
+        #Create SpecularityMaterial
+        specularNode = FModImporter.createTexNode(nodeTree,"NONE",texture,"Specular Texture")
+        #Create RGB Curves
+        curveNode = nodeTree.nodes.new(type="ShaderNodeRGBCurve")
+        curveNode.name = "Specular Curve"
+        #Plug Specularity Color to RGB Curves (color -> color)
+        nodeTree.links.new(specularNode.outputs[0],curveNode.inputs[0])
+        return curveNode
             
     @staticmethod
     def assignTexture(meshObject, textureData):
@@ -144,7 +214,7 @@ class FModImporter():
             raise FileNotFoundError("File %s not found"%filepath)
         
     @staticmethod
-    def prayToGod(path):
+    def prayToGod(path,ix):
         modelPath = Path(path)
         candidates = [modelPath.parent,
                       *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f>modelPath.parent]),
@@ -154,4 +224,4 @@ class FModImporter():
             current = sorted(list(directory.rglob("*.png")))
             if current:
                 current.sort()
-                return current[0].resolve().as_posix()
+                return current[min(ix,len(current))].resolve().as_posix()

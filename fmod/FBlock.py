@@ -200,24 +200,30 @@ class materialChannelMapping(PyCStruct):
                         ("unkn" , "byte[%s]"%(blocksize-72)),
                         ("TextureLinkDif" , "uint32"),])
         super().__init__()
+
+class textureIndex(PyCStruct):
+    fields = OrderedDict([("index","uint32")])
     
 class materialData(PyCStruct):
     fields = OrderedDict([
-            ("unkn3" , "float"),
-            ("unkn4" , "float"),
-            ("unkn5" , "float"),
+            #("unkn1" , "uint32"),
+            #("unkn2" , "uint32"),
+            #("blockSize" , "uint32"),
+            ("unkn3" , "float[3]"),
             ("unkn6" , "float"),
-            ("unkn7" , "float"),
-            ("unkn8" , "float"),
+            ("unkn7" , "float[3]"),
+            ("float4" , "float[4]"),
+            ("unkn8", "uint32"),
             ("unkn9" , "float"),
-            ("float0", "float"),
-            ("float1" , "float"),
-            ("float2" , "float"),
-            ("float3" , "float"),
-            ("textureCount" ,"uint32"),
-            ("unkn11" , "float"),
-            ("unkn12" , "uint32"),
-            ("unkn" , "byte[80]"),])
+            ("textureCount" , "uint32"),
+            ("unkn" , "byte[200]"),])
+    def marshall(self,data):
+        super().marshall(data)
+        #print()
+        #for prop in self.fields:
+        #    print("%s: %s"%(prop,getattr(self,prop)))
+        self.textureIndices = [textureIndex() for i in range(self.textureCount)]
+        list(map(lambda x: x.marshall(data),self.textureIndices))
     """
     def marshall(self,data):
         self.Header = materialHeader()
