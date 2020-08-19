@@ -19,6 +19,8 @@ class FSklImporter():
         skeleton = FSkeleton(fmodPath).skeletonStructure()
         currentSkeleton = {}
         o = bpy.data.objects.new("Armature", None )
+        bpy.context.scene.objects.link(o)
+        #bpy.context.scene.update()
         currentSkeleton = {"Armature":o}
         for bone in skeleton.values():
             FSklImporter.importBone(bone, currentSkeleton, skeleton)
