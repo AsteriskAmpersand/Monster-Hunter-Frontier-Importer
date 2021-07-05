@@ -34,8 +34,10 @@ class ImportFMOD(Operator, ImportHelper):
         except:
             pass
         bpy.ops.object.select_all(action='DESELECT')
+        
         importer = FModImporterLayer.FModImporter()
-        importer.clearScene()
+        if self.clear_scene:
+            importer.clearScene()
         importer.maximizeClipping()
         importer.execute(self.properties.filepath, self.import_textures)
         importer.maximizeClipping()

@@ -12,6 +12,7 @@ import array
 import os
 from pathlib import Path
 from ..blender.BlenderNodesFunctions import principledSetup, diffuseSetup, normalSetup, specularSetup, finishSetup
+
 class FModImporter():   
     @staticmethod
     def execute(fmodPath, import_textures):
@@ -19,13 +20,14 @@ class FModImporter():
         fmod = FModel(fmodPath)
         meshes = fmod.traditionalMeshStructure()
         materials = fmod.Materials
+        blenderMaterials = {}
         for ix, mesh in enumerate(meshes):
-            FModImporter.importMesh(ix, mesh)
+            FModImporter.importMesh(ix, mesh,blenderMaterials)
         if import_textures:
-            FModImporter.importTextures(materials, fmodPath)
+            FModImporter.importTextures(materials, fmodPath,blenderMaterials)
             
     @staticmethod
-    def importMesh(ix,mesh):
+    def importMesh(ix,mesh,bmats):
         meshObjects = []
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -36,7 +38,7 @@ class FModImporter():
         #UVs
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
         #, mesh["materials"], mesh["faceMaterial"]
-        FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"])
+        FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"], bmats)
         
         #Weights
         FModImporter.setWeights(mesh["weights"],mesh["boneRemap"],blenderObject)
@@ -53,14 +55,15 @@ class FModImporter():
         return blenderMesh, blenderObject
     
     @staticmethod
-    def createTextureLayer(blenderMesh, uv, materialList, faceMaterials):#texFaces):
+    def createTextureLayer(blenderMesh, uv, materialList, faceMaterials, bmats):#texFaces):
         #if bpy.context.active_object.mode!='OBJECT':
         #    bpy.ops.object.mode_set(mode='OBJECT')
         for material in materialList:
             matname = "FrontierMaterial-%03d"%material
-            if matname not in bpy.data.materials:
-                bpy.data.materials.new(name=matname)
-            mat = bpy.data.materials[matname]
+            if material not in bmats:
+                mat = bpy.data.materials.new(name=matname)
+                bmats[material] = mat
+            mat = bmats[material]
             blenderMesh.materials.append(mat)
             #materials.append(mat)
         blenderMesh.uv_textures.new("UV0")
@@ -125,46 +128,45 @@ class FModImporter():
         return
     
     @staticmethod
-    def importTextures(materials, path): 
+    def importTextures(materials, path,bmats): 
         def getTexture(ix):
             filepath = FModImporter.prayToGod(path,ix)
             print(ix)
             print(filepath)
             return FModImporter.fetchTexture(filepath)
         
-        for mat in bpy.data.materials:
-            if "FrontierMaterial" in mat.name:
-                # Setup
-                mat.use_nodes=True
-                nodeTree = mat.node_tree
-                nodes = nodeTree.nodes
-                for node in nodes:
-                    nodes.remove(node)
-                # Preamble
-                ix = int(mat.name.split("-")[1])
-                diffuseIx = materials[ix].getDiffuse()
-                normalIx = materials[ix].getNormal()
-                specularIx = materials[ix].getSpecular()
-                # Construction        
-                setup = principledSetup(nodeTree) 
-                next(setup)
-                if diffuseIx is not None:
-                    diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
-                    setup.send(diffuseNode)
-                else: setup.send(None)
-                #setup.send(None)
-                if normalIx is not None:
-                    normalNode = normalSetup(nodeTree,getTexture(normalIx) )
-                    setup.send(normalNode)
-                else: setup.send(None)
-                if specularIx is not None:
-                    specularNode = specularSetup(nodeTree,getTexture(specularIx) )
-                    setup.send(specularNode)
-                else: setup.send(None)
-                finishSetup(nodeTree,next(setup))
-                    #FModImporter.assignTexture(mesh, textureData)
-                #except:
-                #    pass            
+        for ix,mat in bmats.items():
+            # Setup
+            mat.use_nodes=True
+            nodeTree = mat.node_tree
+            nodes = nodeTree.nodes
+            for node in nodes:
+                nodes.remove(node)
+            # Preamble
+            #ix = int(mat.name.split("-")[1])
+            diffuseIx = materials[ix].getDiffuse()
+            normalIx = materials[ix].getNormal()
+            specularIx = materials[ix].getSpecular()
+            # Construction        
+            setup = principledSetup(nodeTree) 
+            next(setup)
+            if diffuseIx is not None:
+                diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
+                setup.send(diffuseNode)
+            else: setup.send(None)
+            #setup.send(None)
+            if normalIx is not None:
+                normalNode = normalSetup(nodeTree,getTexture(normalIx) )
+                setup.send(normalNode)
+            else: setup.send(None)
+            if specularIx is not None:
+                specularNode = specularSetup(nodeTree,getTexture(specularIx) )
+                setup.send(specularNode)
+            else: setup.send(None)
+            finishSetup(nodeTree,next(setup))
+                #FModImporter.assignTexture(mesh, textureData)
+            #except:
+            #    pass            
             
     @staticmethod
     def assignTexture(meshObject, textureData):
