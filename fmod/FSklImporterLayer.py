@@ -42,6 +42,7 @@ class FSklImporter():
         parentName = "Armature" if bone.parentID==-1 else "Bone.%03d"%bone.parentID
         if parentName not in skeleton:
             FSklImporter.importBone(skeletonStructure[bone.parentID],skeleton,skeletonStructure)
+        o["id"] = bone.nodeID
         o.parent = skeleton[parentName]        
         o.matrix_local = FSklImporter.deserializePoseVector(bone.posVec)
         o.show_wire = True

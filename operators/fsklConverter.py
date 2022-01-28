@@ -1,13 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug 18 23:29:33 2020
-
-@author: AsteriskAmpersand
-"""
-
-
-# -*- coding: utf-8 -*-
-"""
 Created on Tue Aug 18 22:47:34 2020
 
 @author: AsteriskAmpersand
@@ -42,6 +34,7 @@ def createBone(armature, obj, parent_bone = None):
     for child in obj.children:
         nbone = createBone(armature, child, bone)
         nbone.parent = bone
+    if "id" in obj: bone["id"] = obj["id"]
     return bone
 
 def createArmature():#Skeleton
