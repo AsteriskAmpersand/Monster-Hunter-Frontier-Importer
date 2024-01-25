@@ -10,6 +10,7 @@ from collections import OrderedDict
 from bpy.types import Operator
 MACHINE_EPSILON = 2**-8
 
+
 class DummyBone():
     def __init__(self):
         self.matrix = Matrix.Identity(4)
@@ -17,12 +18,14 @@ class DummyBone():
         self.tail = Vector([0,0,0])
         self.magnitude = 1
 
+
 def createParentBone(armature):
     bone = armature.edit_bones.new("Bone.255")
     bone.head = Vector([0, 0, 0])
     bone.tail = Vector([0, MACHINE_EPSILON, 0])
     bone.matrix = Matrix.Identity(4)        
     return bone
+
 
 def createBone(armature, obj, parent_bone = None):
     bone = armature.edit_bones.new(obj.name)
@@ -34,15 +37,22 @@ def createBone(armature, obj, parent_bone = None):
     for child in obj.children:
         nbone = createBone(armature, child, bone)
         nbone.parent = bone
-    if "id" in obj: bone["id"] = obj["id"]
+    if "id" in obj:
+        bone["id"] = obj["id"]
     return bone
 
+
 def createArmature():#Skeleton
-    roots = [ o for o in bpy.context.scene.objects if o.type == "EMPTY" and o.parent is None ]
+    roots = [o for o in bpy.context.scene.objects if o.type == "EMPTY" and o.parent is None]
     bpy.ops.object.select_all(action='DESELECT')
     blenderArmature = bpy.data.armatures.new('Armature')
     arm_ob = bpy.data.objects.new('Armature', blenderArmature)
-    bpy.context.scene.objects.link(arm_ob)
+    try:
+        # Blender 2.8+
+        bpy.context.collection.objects.link(arm_ob)
+    except ValueError:
+        # Blender <2.8
+        bpy.context.scene.objects.link(arm_ob)
     bpy.context.scene.update()
     arm_ob.select = True
     arm_ob.show_x_ray = True
@@ -53,7 +63,7 @@ def createArmature():#Skeleton
     for bone in roots:
         root = createBone(blenderArmature, bone)
         root.parent = empty
-        #arm.pose.bones[ix].matrix        
+        #arm.pose.bones[ix].matrix
     bpy.ops.object.editmode_toggle()
     for obj in bpy.context.scene.objects:
         if obj.type == "MESH":
@@ -61,11 +71,12 @@ def createArmature():#Skeleton
             m.object = arm_ob
     return
 
+
 class ConvertFSKL(Operator):
     bl_idname = "frontier_tools.convert_fskl"
     bl_label = "Convert FSKL to Armature"
     bl_options = {'REGISTER', 'PRESET', 'UNDO'}
     
-    def execute(self,context):
+    def execute(self, context):
         createArmature()
         return {'FINISHED'}

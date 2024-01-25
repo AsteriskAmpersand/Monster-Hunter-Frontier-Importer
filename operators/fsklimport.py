@@ -10,6 +10,7 @@ from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
 from ..fmod import FSklImporterLayer
 
+
 class ImportFSKL(Operator, ImportHelper):
     bl_idname = "custom_import.import_mhf_fskl"
     bl_label = "Load MHF FSKL file (.fskl)"
@@ -19,7 +20,7 @@ class ImportFSKL(Operator, ImportHelper):
     filename_ext = ".fskl"
     filter_glob = StringProperty(default="*.fskl", options={'HIDDEN'}, maxlen=255)
 
-    def execute(self,context):
+    def execute(self, context):
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
         except:

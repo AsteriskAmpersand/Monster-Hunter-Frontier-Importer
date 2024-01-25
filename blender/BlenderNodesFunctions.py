@@ -6,18 +6,27 @@ Created on Mon Dec  2 00:15:34 2019
 """
 import bpy
 
+
 def setLocation(node,location):
     x,y = location
     node.location = (x-14)*100,-y*100
 
+
 #setup scheme from https://i.stack.imgur.com/cdRIK.png
-def createTexNode(nodeTree,color,texture,name):
+def createTexNode(nodeTree, color, texture, name):
     baseType = "ShaderNodeTexImage"
     node = nodeTree.nodes.new(type=baseType)
-    node.color_space = color
-    node.image = texture
+    if hasattr(node, 'color_space'):
+        # Blender <2.8
+        node.color_space = color
+        node.image = texture
+    else:
+        # Blender 2.8
+        node.image = texture
+        node.image.colorspace_settings.is_data = color == "NONE"
     node.name = name
     return node
+
 
 def materialSetup(blenderObj,*args):
     matName = blenderObj.data["material"].replace("\x00","") if "material" in blenderObj.data else "RenderMaterial"
@@ -32,6 +41,7 @@ def materialSetup(blenderObj,*args):
     for node in nodes:
         nodes.remove(node)
     return mat.node_tree
+
 
 def principledSetup(nodeTree):
     bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfPrincipled")
@@ -60,16 +70,18 @@ def principledSetup(nodeTree):
     yield
     yield endNode
 
-def diffuseSetup(nodeTree,texture,*args):
+
+def diffuseSetup(nodeTree, texture, *args):
     #Create DiffuseTexture
-    diffuseNode = createTexNode(nodeTree,"COLOR",texture,"Diffuse Texture")
-    setLocation(diffuseNode,(0,0))
+    diffuseNode = createTexNode(nodeTree, "COLOR", texture, "Diffuse Texture")
+    setLocation(diffuseNode, (0, 0))
     #Create DiffuseBSDF
     #bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfDiffuse")
     #bsdfNode.name = "Diffuse BSDF"          
     #Plug Diffuse Texture to BDSF (color -> color)
     #nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
     return diffuseNode
+
 
 def normalSetup(nodeTree,texture,*args):
     #Create NormalMapData
@@ -82,7 +94,8 @@ def normalSetup(nodeTree,texture,*args):
     #Plug Normal Data to Node (color -> color)
     nodeTree.links.new(normalNode.outputs[0],normalmapNode.inputs[1])
     return normalmapNode
-    
+
+
 def specularSetup(nodeTree,texture,*args):
     #Create SpecularityMaterial
     specularNode = createTexNode(nodeTree,"NONE",texture,"Specular Texture")
@@ -94,7 +107,8 @@ def specularSetup(nodeTree,texture,*args):
     #Plug Specularity Color to RGB Curves (color -> color)
     nodeTree.links.new(specularNode.outputs[0],curveNode.inputs[0])
     return curveNode
-    
+
+
 def emissionSetup(nodeTree,texture,*args):
     return "" #Commented out, it's not really possible to work withit without the parameters
     #Create EmissionMap
@@ -111,6 +125,7 @@ def emissionSetup(nodeTree,texture,*args):
     nodeTree.links.new(emissionNode.outputs[0],brightnessMap.inputs[0])
     nodeTree.links.new(brightnessMap.outputs[2],emissionMap.inputs[1])
     return emissionMap
+
 
 #setup scheme from https://i.stack.imgur.com/TdK1W.png + https://i.stack.imgur.com/40vbG.jpg
 def rmtSetup(nodeTree,texture,*args):
@@ -131,6 +146,7 @@ def rmtSetup(nodeTree,texture,*args):
     #Splitter to Inverter
     nodeTree.links.new(splitterNode.outputs[0],inverterNode.inputs[0])
     return inverterNode,splitterNode,rmtNode
+
 
 def furSetup(nodeTree,texture,*args):
     #TODO - Actually Finish This 
@@ -162,8 +178,7 @@ def furSetup(nodeTree,texture,*args):
     nodeTree.links.new(reflectionNode.outputs[0],hairNode.inputs[2])
     return 
     
-    
-    
+
 def finishSetup(nodeTree, endNode):
     outputNode = nodeTree.nodes.new(type="ShaderNodeOutputMaterial")
     nodeTree.links.new(endNode.outputs[0],outputNode.inputs[0])

@@ -13,38 +13,55 @@ import os
 from mathutils import Vector, Matrix
 from pathlib import Path
 
-class FSklImporter():   
+
+class FSklImporter:
     @staticmethod
     def execute(fmodPath):
         skeleton = FSkeleton(fmodPath).skeletonStructure()
         currentSkeleton = {}
-        o = bpy.data.objects.new("Armature", None )
-        bpy.context.scene.objects.link(o)
+        o = bpy.data.objects.new("Armature", None)
+        try:
+            # Blender 2.8+
+            bpy.context.collection.objects.link(o)
+        except ValueError:
+            # Blender <2.8
+            bpy.context.scene.objects.link(o)
         #bpy.context.scene.update()
-        currentSkeleton = {"Armature":o}
+        currentSkeleton = {"Armature": o}
         for bone in skeleton.values():
             FSklImporter.importBone(bone, currentSkeleton, skeleton)
+
     @staticmethod
     def deserializePoseVector(vec4):
         m = Matrix.Identity(4)
         for i in range(4):
-            m[i][3]=vec4[i]
+            m[i][3] = vec4[i]
         return m
 
     @staticmethod
     def importBone(bone, skeleton, skeletonStructure):
         ix = bone.nodeID
-        if "Bone.%03d"%ix in skeleton:
+        if "Bone.%03d" % ix in skeleton:
             return
-        o = bpy.data.objects.new("Bone.%03d"%ix, None )
-        skeleton["Bone.%03d"%ix]=o
-        bpy.context.scene.objects.link( o )
-        parentName = "Armature" if bone.parentID==-1 else "Bone.%03d"%bone.parentID
+        o = bpy.data.objects.new("Bone.%03d" % ix, None)
+        skeleton["Bone.%03d" % ix] = o
+        try:
+            # Blender 2.8+
+            bpy.context.collection.objects.link(o)
+        except ValueError:
+            # Blender <2.8
+            bpy.context.scene.objects.link(o)
+        parentName = "Armature" if bone.parentID == -1 else "Bone.%03d" % bone.parentID
         if parentName not in skeleton:
-            FSklImporter.importBone(skeletonStructure[bone.parentID],skeleton,skeletonStructure)
+            FSklImporter.importBone(skeletonStructure[bone.parentID], skeleton, skeletonStructure)
         o["id"] = bone.nodeID
         o.parent = skeleton[parentName]        
         o.matrix_local = FSklImporter.deserializePoseVector(bone.posVec)
         o.show_wire = True
-        o.show_x_ray = True
+        if hasattr(o, 'show_in_front'):
+            # Blender 2.8+
+            o.show_in_front = True
+        else:
+            # Blender <2.8
+            o.show_x_ray = True
         o.show_bounds = True

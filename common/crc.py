@@ -199,7 +199,6 @@ class CrccheckBase(object):
         inst.process(data)
         return inst.final()
 
-
     @classmethod
     def calchex(cls, data, initvalue=None, byteorder='big', **kwargs):
         """Fully calculate checksum over given data. Return result as hex string.
@@ -232,7 +231,6 @@ class CrccheckBase(object):
         inst = cls(initvalue, **kwargs)
         inst.process(data)
         return inst.finalbytes(byteorder)
-
 
     @classmethod
     def selftest(cls, data=None, expectedresult=None, **kwargs):
@@ -303,7 +301,6 @@ class CrcBase(CrccheckBase):
         self._value = crc
         return self
 
-
     def final(self):
         """ Return final CRC value.
 
@@ -315,6 +312,7 @@ class CrcBase(CrccheckBase):
             crc = reflectbitorder(self._width, crc)
         crc ^= self._xor_output
         return crc
+
 
 class Crc32(CrcBase):
     """CRC-32.
@@ -354,6 +352,7 @@ class Crc32(CrcBase):
         self._value = crc
         return self
 
+
 class CrcJamcrc(Crc32):
     """JAMCRC"""
     _width = 32
@@ -363,4 +362,3 @@ class CrcJamcrc(Crc32):
     _reflect_output = True
     _xor_output = 0x00000000
     _check_result = 0x340BC6D9
-    

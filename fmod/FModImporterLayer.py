@@ -13,7 +13,8 @@ import os
 from pathlib import Path
 from ..blender.BlenderNodesFunctions import principledSetup, diffuseSetup, normalSetup, specularSetup, finishSetup
 
-class FModImporter():   
+
+class FModImporter:
     @staticmethod
     def execute(fmodPath, import_textures):
         bpy.context.scene.render.engine = 'CYCLES'
@@ -27,39 +28,83 @@ class FModImporter():
             FModImporter.importTextures(materials, fmodPath,blenderMaterials)
             
     @staticmethod
-    def importMesh(ix,mesh,bmats):
+    def importMesh(ix, mesh, bmats):
         meshObjects = []
         bpy.ops.object.select_all(action='DESELECT')
 
         #Geometry
-        blenderMesh, blenderObject = FModImporter.createMesh("FModMeshpart %03d"%(ix),mesh)
+        blenderMesh, blenderObject = FModImporter.createMesh("FModMeshpart %03d" % (ix, ), mesh)
         #Normals Handling
-        FModImporter.setNormals(mesh["normals"],blenderMesh)
+        FModImporter.setNormals(mesh["normals"], blenderMesh)
         #UVs
         #for ix, uv_layer in enumerate(meshpart["uvs"]):
         #, mesh["materials"], mesh["faceMaterial"]
-        FModImporter.createTextureLayer(blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"], bmats)
+        if hasattr(blenderMesh, 'uv_textures'):
+            # Blender <2.8
+            FModImporter.createTextureLayer(
+                blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"], bmats
+            )
+        else:
+            # Blender 2.8+
+            FModImporter.createTextureLayerFromObj(
+                blenderObject, blenderMesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"], bmats
+            )
         
         #Weights
-        FModImporter.setWeights(mesh["weights"],mesh["boneRemap"],blenderObject)
+        FModImporter.setWeights(mesh["weights"], mesh["boneRemap"], blenderObject)
         blenderMesh.update()
         meshObjects.append(blenderObject)
         
     @staticmethod
     def createMesh(name, meshpart):
-        blenderMesh = bpy.data.meshes.new("%s"%(name))
-        blenderMesh.from_pydata(meshpart["vertices"],[],meshpart["faces"])
+        blenderMesh = bpy.data.meshes.new("%s" % (name, ))
+        blenderMesh.from_pydata(meshpart["vertices"], [], meshpart["faces"])
         blenderMesh.update()
-        blenderObject = bpy.data.objects.new("%s"%(name), blenderMesh)
-        bpy.context.scene.objects.link(blenderObject)
+        blenderObject = bpy.data.objects.new("%s" % (name, ), blenderMesh)
+        try:
+            # Blender 2.8+
+            bpy.context.collection.objects.link(blenderObject)
+        except ValueError:
+            # Blender <2.8
+            bpy.context.scene.objects.link(blenderObject)
         return blenderMesh, blenderObject
+
+    @staticmethod
+    def createTextureLayerFromObj(blenderObj, blenderMesh, uv, materialList, faceMaterials, bmats):
+        """General function to create texture, for Blender 2.8+."""
+        #if bpy.context.active_object.mode!='OBJECT':
+        #    bpy.ops.object.mode_set(mode='OBJECT')
+        for material in materialList:
+            matname = "FrontierMaterial-%03d" % material
+            if material not in bmats:
+                mat = bpy.data.materials.new(name=matname)
+                bmats[material] = mat
+            mat = bmats[material]
+            blenderMesh.materials.append(mat)
+            #materials.append(mat)
+        #blenderMesh.uv_textures.new("UV0")
+        blenderObj.data.uv_layers.new(name="UV0")
+        blenderMesh.update()
+        blenderBMesh = bmesh.new()
+        blenderBMesh.from_mesh(blenderMesh)
+        uv_layer = blenderBMesh.loops.layers.uv["UV0"]
+        blenderBMesh.faces.ensure_lookup_table()
+        for face in blenderBMesh.faces:
+            for loop in face.loops:
+                #BlenderImporterAPI.dbg.write("\t%d\n"%loop.vert.index)
+                loop[uv_layer].uv = uv[loop.vert.index]
+            #print("%d/%d/%d"%(face.index,len(faceMaterials),len(blenderBMesh.faces)))
+            face.material_index = faceMaterials[face.index]
+        blenderBMesh.to_mesh(blenderMesh)
+        blenderMesh.update()
+        return #uvtex
     
     @staticmethod
     def createTextureLayer(blenderMesh, uv, materialList, faceMaterials, bmats):#texFaces):
         #if bpy.context.active_object.mode!='OBJECT':
         #    bpy.ops.object.mode_set(mode='OBJECT')
         for material in materialList:
-            matname = "FrontierMaterial-%03d"%material
+            matname = "FrontierMaterial-%03d" % material
             if material not in bmats:
                 mat = bpy.data.materials.new(name=matname)
                 bmats[material] = mat
@@ -81,7 +126,7 @@ class FModImporter():
         blenderBMesh.to_mesh(blenderMesh)
         blenderMesh.update()
         return #uvtex
-		
+
     @staticmethod
     def setNormals(normals, meshpart):
         meshpart.update(calc_edges=True)
@@ -95,17 +140,20 @@ class FModImporter():
         meshpart.normals_split_custom_set_from_vertices(normals)
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
         meshpart.use_auto_smooth = True
-        meshpart.show_edge_sharp = True
+        #Setting is True by default on Blender 2.8+
+        if hasattr(meshpart, 'show_edge_sharp'):
+            # Blender 2.7x
+            meshpart.show_edge_sharp = True
         
     @staticmethod
     def setWeights(weights, remap, meshObj):
-        for meshBoneIx,group in weights.items():
+        for meshBoneIx, group in weights.items():
             groupIx = remap[meshBoneIx]
-            groupId = "%03d"%groupIx if isinstance(groupIx, int) else str(groupIx) 
-            groupName = "Bone.%s"%str(groupId)
-            for vertex,weight in group:
+            groupId = "%03d" % groupIx if isinstance(groupIx, int) else str(groupIx)
+            groupName = "Bone.%s" % str(groupId)
+            for vertex, weight in group:
                 if groupName not in meshObj.vertex_groups:
-                    meshObj.vertex_groups.new(groupName)#blenderObject Maybe?
+                    meshObj.vertex_groups.new(name=groupName)#blenderObject Maybe?
                 meshObj.vertex_groups[groupName].add([vertex], weight, 'ADD')
             
         
@@ -128,9 +176,9 @@ class FModImporter():
         return
     
     @staticmethod
-    def importTextures(materials, path,bmats): 
+    def importTextures(materials, path, bmats):
         def getTexture(ix):
-            filepath = FModImporter.prayToGod(path,ix)
+            filepath = FModImporter.prayToGod(path, ix)
             print(ix)
             print(filepath)
             return FModImporter.fetchTexture(filepath)
@@ -151,16 +199,16 @@ class FModImporter():
             setup = principledSetup(nodeTree) 
             next(setup)
             if diffuseIx is not None:
-                diffuseNode = diffuseSetup(nodeTree,getTexture(diffuseIx) )
+                diffuseNode = diffuseSetup(nodeTree, getTexture(diffuseIx))
                 setup.send(diffuseNode)
             else: setup.send(None)
             #setup.send(None)
             if normalIx is not None:
-                normalNode = normalSetup(nodeTree,getTexture(normalIx) )
+                normalNode = normalSetup(nodeTree, getTexture(normalIx))
                 setup.send(normalNode)
             else: setup.send(None)
             if specularIx is not None:
-                specularNode = specularSetup(nodeTree,getTexture(specularIx) )
+                specularNode = specularSetup(nodeTree, getTexture(specularIx))
                 setup.send(specularNode)
             else: setup.send(None)
             finishSetup(nodeTree,next(setup))
@@ -183,14 +231,15 @@ class FModImporter():
             raise FileNotFoundError("File %s not found"%filepath)
         
     @staticmethod
-    def prayToGod(path,ix):
+    def prayToGod(path, ix):
         modelPath = Path(path)
-        candidates = [modelPath.parent,
-                      *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f>modelPath.parent]),
-                      *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f<modelPath.parent])
-                        ]
+        candidates = [
+            modelPath.parent,
+            *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f > modelPath.parent]),
+            *sorted([f for f in modelPath.parents[1].glob('**/*') if f.is_dir() and f < modelPath.parent])
+        ]
         for directory in candidates:
             current = sorted(list(directory.rglob("*.png")))
             if current:
                 current.sort()
-                return current[min(ix,len(current))].resolve().as_posix()
+                return current[min(ix, len(current))].resolve().as_posix()

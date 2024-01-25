@@ -13,6 +13,7 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+
 def HalfToFloat(h):
     s = int((h >> 15) & 0x00000001)    # sign
     e = int((h >> 10) & 0x0000001f)    # exponent
